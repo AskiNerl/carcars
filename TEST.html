@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Топ автомобилей по годам (2000–2026)</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --accent:#4dd0e1;
+    --muted:#98a0ad;
+    --glass: rgba(255,255,255,0.06);
+    --radius:14px;
+    font-family: Inter, system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:#e7edf5;
+    padding:0;
+    min-height:100vh;
+  }
+
+  header{
+    position:fixed;
+    top:0;left:0;right:0;
+    background:#0c1627cc;
+    backdrop-filter:blur(10px);
+    padding:12px 18px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:12px;
+    z-index:10;
+  }
+  header h1{font-size:18px;font-weight:600;margin-right:auto}
+
+  .control{
+    background:var(--glass);
+    border-radius:var(--radius);
+    padding:6px 10px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  select, input[type="range"], input[type="search"]{
+    background:transparent;border:none;color:inherit;outline:none;font-size:14px;
+  }
+  input[type="search"]{width:140px}
+
+  main{
+    padding:100px 16px 40px;
+    max-width:1200px;
+    margin:auto;
+  }
+
+  #yearDisplay{font-size:32px;color:var(--accent);margin-bottom:12px}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(250px,1fr));
+    gap:16px;
+  }
+
+  .car-card{
+    background:var(--glass);
+    border-radius:var(--radius);
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .car-card img{
+    width:100%; height:150px; object-fit:cover;
+    border-radius:var(--radius);
+    background:#111;
+  }
+  .car-card h3{font-size:16px;margin-top:4px}
+  .car-card p{font-size:13px;color:var(--muted)}
+  .chip{
+    display:inline-block;
+    background:rgba(255,255,255,0.08);
+    padding:4px 8px;
+    border-radius:8px;
+    font-size:12px;color:var(--muted);
+  }
+
+  @media (max-width:600px){
+    header h1{width:100%;}
+    input[type="search"]{width:100px;}
+    .car-card img{height:120px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Топ машин • 2000–2026</h1>
+  <div class="control"><label>Год:</label><select id="yearSelect"></select></div>
+  <div class="control"><input id="yearRange" type="range" min="2000" max="2026" step="1" /></div>
+  <div class="control"><input id="search" type="search" placeholder="Поиск..." /></div>
+</header>
+
+<main>
+  <div id="yearDisplay">2000</div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<script>
+// Реальные топ-модели по годам (каждая с img:"img/имя.jpg")
+// Ты сможешь заменить картинки на свои, просто меняя путь.
+const data = {
+  2000:[
+    {make:"Toyota",model:"Corolla",info:"Надёжный мировой бестселлер",img:"img/2000_corolla.jpg"},
+    {make:"Honda",model:"Civic",info:"Отличная управляемость",img:"img/2000_civic.jpg"},
+    {make:"BMW",model:"3 Series (E46)",info:"Баланс комфорта и спорта",img:"img/2000_e46.jpg"},
+    {make:"Mercedes",model:"C-Class (W203)",info:"Комфорт и престиж",img:"img/2000_w203.jpg"},
+    {make:"Ford",model:"Focus",info:"Практичный и доступный",img:"img/2000_focus.jpg"},
+  ],
+  2001:[
+    {make:"Volkswagen",model:"Golf IV",info:"Культовый хэтчбек",img:"img/2001_golf4.jpg"},
+    {make:"Audi",model:"A4 B6",info:"Стиль и технологии",img:"img/2001_a4.jpg"},
+    {make:"Subaru",model:"Impreza WRX",info:"Полный привод и турбо",img:"img/2001_wrx.jpg"},
+    {make:"Lexus",model:"IS200",info:"Надёжность + премиум",img:"img/2001_is200.jpg"},
+    {make:"Mazda",model:"626",info:"Комфорт и деш. обслуживание",img:"img/2001_626.jpg"},
+  ],
+  2002:[
+    {make:"Nissan",model:"Skyline GT-R R34",info:"Легенда JDM",img:"img/2002_r34.jpg"},
+    {make:"BMW",model:"M3 E46",info:"Лучший М3 по ощущениям",img:"img/2002_m3.jpg"},
+    {make:"Toyota",model:"Celica",info:"Спорт-купе для города",img:"img/2002_celica.jpg"},
+    {make:"Honda",model:"S2000",info:"Высокие обороты, культ",img:"img/2002_s2000.jpg"},
+    {make:"Mitsubishi",model:"Lancer Evo VII",info:"Ралли ДНК",img:"img/2002_evo7.jpg"},
+  ],
+  2003:[
+    {make:"Mazda",model:"RX-8",info:"Роторный двигатель и уникальный стиль",img:"img/2003_rx8.jpg"},
+    {make:"Infiniti",model:"G35 Coupe",info:"Надёжный V6 и задний привод",img:"img/2003_g35.jpg"},
+    {make:"Volkswagen",model:"Phaeton",info:"Флагман премиум-класса",img:"img/2003_phaeton.jpg"},
+    {make:"BMW",model:"5 Series (E60)",info:"Современный дизайн и технологии",img:"img/2003_e60.jpg"},
+    {make:"Toyota",model:"Land Cruiser 100",info:"Легендарный внедорожник",img:"img/2003_lc100.jpg"},
+  ],
+  2004:[
+    {make:"Subaru",model:"Impreza WRX STI",info:"Икона полного привода и турбо",img:"img/2004_sti.jpg"},
+    {make:"Mitsubishi",model:"Lancer Evo VIII",info:"Продолжение раллийной легенды",img:"img/2004_evo8.jpg"},
+    {make:"Honda",model:"Accord",info:"Комфорт и надёжность",img:"img/2004_accord.jpg"},
+    {make:"Mercedes",model:"E-Class W211",info:"Премиум бизнес-седан",img:"img/2004_w211.jpg"},
+    {make:"Skoda",model:"Octavia",info:"Практичная и экономичная",img:"img/2004_octavia.jpg"},
+  ],
+  2005:[
+    {make:"Bugatti",model:"Veyron",info:"Самый быстрый автомобиль мира своего времени",img:"img/2005_veyron.jpg"},
+    {make:"Ford",model:"Mustang GT",info:"Американская мускульная классика",img:"img/2005_mustang.jpg"},
+    {make:"Audi",model:"A6 C6",info:"Комфорт и технологии",img:"img/2005_a6.jpg"},
+    {make:"BMW",model:"M5 E60",info:"V10 и 507 л.с. — зверь",img:"img/2005_m5e60.jpg"},
+    {make:"Renault",model:"Megane II RS",info:"Горячий хэтч с отличной управляемостью",img:"img/2005_megane_rs.jpg"},
+  ],
+  2006:[
+    {make:"Nissan",model:"350Z",info:"Спортивное купе с задним приводом",img:"img/2006_350z.jpg"},
+    {make:"Lexus",model:"LS460",info:"Топовый комфорт и тишина",img:"img/2006_ls460.jpg"},
+    {make:"BMW",model:"3 Series E90",info:"Баланс драйва и практичности",img:"img/2006_e90.jpg"},
+    {make:"Honda",model:"Civic VIII",info:"Футуристичный дизайн и надёжность",img:"img/2006_civic.jpg"},
+    {make:"Toyota",model:"RAV4",info:"Удобный городской кроссовер",img:"img/2006_rav4.jpg"},
+  ],
+  2007:[
+    {make:"Nissan",model:"GT-R R35",info:"Новый король японских спорткаров",img:"img/2007_gtr.jpg"},
+    {make:"Audi",model:"R8",info:"Суперкар с ежедневной практичностью",img:"img/2007_r8.jpg"},
+    {make:"Toyota",model:"Camry XV40",info:"Комфорт и надёжность",img:"img/2007_camry.jpg"},
+    {make:"Mazda",model:"3 (BK)",info:"Стильный и живой хэтч",img:"img/2007_mazda3.jpg"},
+    {make:"Mercedes",model:"C-Class W204",info:"Премиум для каждого дня",img:"img/2007_w204.jpg"},
+  ],
+  2008:[
+    {make:"Subaru",model:"Impreza WRX STI",info:"Обновлённый раллийный характер",img:"img/2008_sti.jpg"},
+    {make:"Mitsubishi",model:"Lancer Evo X",info:"Технологичный и жесткий спорт",img:"img/2008_evox.jpg"},
+    {make:"BMW",model:"1 Series Coupe",info:"Лёгкий и драйвовый",img:"img/2008_e82.jpg"},
+    {make:"Honda",model:"Accord VIII",info:"Надёжность + внешний стиль",img:"img/2008_accord.jpg"},
+    {make:"Volkswagen",model:"Tiguan",info:"Старт популярного кроссовера",img:"img/2008_tiguan.jpg"},
+  ],
+  2009:[
+    {make:"Chevrolet",model:"Camaro SS",info:"Возвращение легенды маслкаров",img:"img/2009_camaro.jpg"},
+    {make:"Nissan",model:"370Z",info:"Эволюция истинного Z",img:"img/2009_370z.jpg"},
+    {make:"BMW",model:"7 Series F01",info:"Флагманский комфорт",img:"img/2009_f01.jpg"},
+    {make:"Kia",model:"Sorento",info:"Надёжный крупный семейный кроссовер",img:"img/2009_sorento.jpg"},
+    {make:"Ford",model:"Fiesta",info:"Лучший городской хэтч своего времени",img:"img/2009_fiesta.jpg"},
+  ],
+  2010:[
+    {make:"Ferrari",model:"458 Italia",info:"Один из лучших суперкаров десятилетия",img:"img/2010_458.jpg"},
+    {make:"Hyundai",model:"Solaris",info:"Хит в СНГ благодаря цене и надёжности",img:"img/2010_solaris.jpg"},
+    {make:"Volkswagen",model:"Polo Sedan",info:"Популярный бюджетный седан",img:"img/2010_polo.jpg"},
+    {make:"BMW",model:"X5 E70",info:"Мощный и статусный кроссовер",img:"img/2010_x5e70.jpg"},
+    {make:"Mercedes",model:"SLS AMG",info:"Крылья чайки и бешеный V8",img:"img/2010_sls.jpg"},],
+  2011:[
+    {make:"BMW",model:"M5 F10",info:"Мощный бизнес-седан",img:"img/2011_m5f10.jpg"},
+    {make:"Audi",model:"A7",info:"Премиум гран-турер",img:"img/2011_a7.jpg"},
+    {make:"Lexus",model:"GS",info:"Комфорт и надёжность",img:"img/2011_gs.jpg"},
+    {make:"Volkswagen",model:"Passat B7",info:"Популярный семейный седан",img:"img/2011_b7.jpg"},
+    {make:"Hyundai",model:"Elantra",info:"Доступный и практичный",img:"img/2011_elantra.jpg"},
+  ],
+  2012:[
+    {make:"Tesla",model:"Model S",info:"Начало эры электрокаров",img:"img/2012_models.jpg"},
+    {make:"BMW",model:"3 Series F30",info:"Комфорт и технологии",img:"img/2012_f30.jpg"},
+    {make:"Toyota",model:"GT86",info:"Задний привод и драйв",img:"img/2012_gt86.jpg"},
+    {make:"Subaru",model:"BRZ",info:"Спорт для улиц",img:"img/2012_brz.jpg"},
+    {make:"Kia",model:"Rio",info:"Хит продаж",img:"img/2012_rio.jpg"},
+  ],
+  2013:[
+    {make:"Mercedes",model:"S-Class W222",info:"Эталон роскоши",img:"img/2013_w222.jpg"},
+    {make:"BMW",model:"4 Series",info:"Спортивное купе",img:"img/2013_4series.jpg"},
+    {make:"Mazda",model:"6",info:"Стиль и драйв",img:"img/2013_mazda6.jpg"},
+    {make:"Range Rover",model:"Vogue",info:"Премиальный внедорожник",img:"img/2013_vogue.jpg"},
+    {make:"Skoda",model:"Rapid",info:"Доступный седан",img:"img/2013_rapid.jpg"},
+  ],
+  2014:[
+    {make:"Porsche",model:"Macan",info:"Компактный драйвовый кроссовер",img:"img/2014_macan.jpg"},
+    {make:"BMW",model:"i8",info:"Гибрид и футуризм",img:"img/2014_i8.jpg"},
+    {make:"Mercedes",model:"C-Class W205",info:"Премиум дизайн",img:"img/2014_w205.jpg"},
+    {make:"Subaru",model:"Outback",info:"Для любых дорог",img:"img/2014_outback.jpg"},
+    {make:"Volkswagen",model:"Golf 7",info:"Хэтчбек №1",img:"img/2014_golf7.jpg"},
+  ],
+  2015:[
+    {make:"Ford",model:"Focus RS",info:"Полный привод и мощь",img:"img/2015_focusrs.jpg"},
+    {make:"Audi",model:"Q7",info:"Большой премиальный SUV",img:"img/2015_q7.jpg"},
+    {make:"Lexus",model:"RX",info:"Мягкость и комфорт",img:"img/2015_rx.jpg"},
+    {make:"Mazda",model:"CX-5",info:"Хит среди кроссоверов",img:"img/2015_cx5.jpg"},
+    {make:"Toyota",model:"Camry XV50",info:"Надёжный бизнес-класс",img:"img/2015_camry.jpg"},
+  ],
+  2016:[
+    {make:"Tesla",model:"Model X",info:"Электро-SUV с дверями сокола",img:"img/2016_modelx.jpg"},
+    {make:"BMW",model:"M2",info:"Компактный драйв",img:"img/2016_m2.jpg"},
+    {make:"Honda",model:"Civic X",info:"Популярный мировой седан",img:"img/2016_civic.jpg"},
+    {make:"Hyundai",model:"Tucson",info:"Удобный семейный кроссовер",img:"img/2016_tucson.jpg"},
+    {make:"Mercedes",model:"GLE",info:"Премиальный SUV",img:"img/2016_gle.jpg"},
+  ],
+  2017:[
+    {make:"Alfa Romeo",model:"Giulia Quadrifoglio",info:"Итальянская агрессия",img:"img/2017_giulia.jpg"},
+    {make:"Audi",model:"RS3",info:"Мощь и полный привод",img:"img/2017_rs3.jpg"},
+    {make:"Kia",model:"Stinger",info:"Спортседан с характером",img:"img/2017_stinger.jpg"},
+    {make:"Volvo",model:"XC90",info:"Комфорт и безопасность",img:"img/2017_xc90.jpg"},
+    {make:"Toyota",model:"CHR",info:"Стильный городской кросс",img:"img/2017_chr.jpg"},
+  ],
+  2018:[
+    {make:"BMW",model:"M5 F90",info:"Супер-седан",img:"img/2018_m5f90.jpg"},
+    {make:"Porsche",model:"911 (992)",info:"Эволюция легенды",img:"img/2018_992.jpg"},
+    {make:"Audi",model:"A8",info:"Флагман технологий",img:"img/2018_a8.jpg"},
+    {make:"Hyundai",model:"Santa Fe",info:"Универсальный SUV",img:"img/2018_santafe.jpg"},
+    {make:"Honda",model:"CR-V",info:"Удобный и экономичный",img:"img/2018_crv.jpg"},
+  ],
+  2019:[
+    {make:"Toyota",model:"Supra A90",info:"Возвращение легенды",img:"img/2019_supra.jpg"},
+    {make:"BMW",model:"X7",info:"Большой премиальный SUV",img:"img/2019_x7.jpg"},
+    {make:"Mercedes",model:"GLS",info:"Максимум комфорта",img:"img/2019_gls.jpg"},
+    {make:"Ford",model:"Explorer",info:"Семейный крупный SUV",img:"img/2019_explorer.jpg"},
+    {make:"Kia",model:"Seltos",info:"Хит среди городских",img:"img/2019_seltos.jpg"},
+  ],
+  2020:[{make:"Porsche",model:"Taycan",info:"Электрический спорт",img:"img/2020_taycan.jpg"},
+    {make:"Mercedes",model:"E-Class W213",info:"Элегантный бизнес",img:"img/2020_w213.jpg"},
+    {make:"BMW",model:"X5 G05",info:"Новый уровень премиума",img:"img/2020_x5.jpg"},
+    {make:"Toyota",model:"Highlander",info:"Семейный комфорт",img:"img/2020_highlander.jpg"},
+    {make:"Mazda",model:"3",info:"Стильный городской",img:"img/2020_mazda3.jpg"},
+  ],
+  2021:[
+    {make:"Hyundai",model:"Tucson",info:"Новый футуристичный дизайн",img:"img/2021_tucson.jpg"},
+    {make:"Audi",model:"Q4 e-tron",info:"Электрический кроссовер",img:"img/2021_q4.jpg"},
+    {make:"BMW",model:"iX",info:"Футуризм и электро",img:"img/2021_ix.jpg"},
+    {make:"Mercedes",model:"S-Class W223",info:"Пик роскоши",img:"img/2021_w223.jpg"},
+    {make:"Kia",model:"Sorento",info:"Комфорт и стиль",img:"img/2021_sorento.jpg"},
+  ],
+    2022:[
+      {make:"Kia",model:"EV6",info:"Электро с большим запасом",img:"img/2022_ev6.jpg"},
+      {make:"BMW",model:"M3 Touring",info:"Редкий универсал-спорт",img:"img/2022_m3touring.jpg"},
+      {make:"Toyota",model:"Land Cruiser 300",info:"Новая легенда внедорожников",img:"img/2022_lc300.jpg"},
+      {make:"Honda",model:"Civic XI",info:"Надёжность плюс стиль",img:"img/2022_civic.jpg"},
+      {make:"Tesla",model:"Model Y",info:"Самый популярный электрокар",img:"img/2022_modely.jpg"},
+    ],
+    2023:[
+      {make:"Toyota",model:"Prius",info:"Гибрид нового поколения",img:"img/2023_prius.jpg"},
+      {make:"BMW",model:"XM",info:"Мощный гибридный SUV",img:"img/2023_xm.jpg"},
+      {make:"Mercedes",model:"EQE",info:"Электро-бизнес класс",img:"img/2023_eqe.jpg"},
+      {make:"Hyundai",model:"IONIQ 6",info:"Электро-седан с дальним ходом",img:"img/2023_ioniq6.jpg"},
+      {make:"Audi",model:"Q8 e-tron",info:"Флагманский электро-SUV",img:"img/2023_q8etron.jpg"},
+    ],
+    2024:[
+      {make:"Tesla",model:"Cybertruck",info:"Электро-пикап будущего",img:"img/2024_cybertruck.jpg"},
+      {make:"BMW",model:"5 Series G60",info:"Новая эра бизнес-седанов",img:"img/2024_g60.jpg"},
+      {make:"Mercedes",model:"EQA",info:"Компактный электро-кроссовер",img:"img/2024_eqa.jpg"},
+      {make:"Kia",model:"EV9",info:"Большой семейный электрокар",img:"img/2024_ev9.jpg"},
+      {make:"Volkswagen",model:"ID.7",info:"Электро-седан для всех",img:"img/2024_id7.jpg"},
+    ],
+    2025:[
+      {make:"Audi",model:"A6 e-tron",info:"Электро-бизнес седан",img:"img/2025_a6etron.jpg"},
+      {make:"Toyota",model:"bZ4X",info:"Электро-кроссовер",img:"img/2025_bz4x.jpg"},
+      {make:"BMW",model:"i5 Touring",info:"Электро-универсал",img:"img/2025_i5touring.jpg"},
+      {make:"Hyundai",model:"Kona Electric",info:"Городской электро-кросс",img:"img/2025_kona.jpg"},
+      {make:"Mercedes",model:"EQG",info:"Электро-Gelandewagen",img:"img/2025_eqg.jpg"},
+    ],
+    2026:[
+      {make:"Volkswagen",model:"Trinity",info:"Электро-флагман будущего",img:"img/2026_trinity.jpg"},
+      {make:"Tesla",model:"Roadster",info:"Суперкар нового поколения",img:"img/2026_roadster.jpg"},
+      {make:"BMW",model:"iX7",info:"Большой электро-SUV",img:"img/2026_ix7.jpg"},
+      {make:"Audi",model:"Q6 e-tron",info:"Электро-кроссовер",img:"img/2026_q6etron.jpg"},
+      {make:"Toyota",model:"Crown EV",info:"Электро-премиум седан",img:"img/2026_crownev.jpg"},
+    ]
+  };
+
+
+// Заполнение селектов
+const yearSelect=document.getElementById('yearSelect');
+const yearRange=document.getElementById('yearRange');
+for(let y=2000;y<=2026;y++){yearSelect.innerHTML+=`<option value="${y}">${y}</option>`}
+yearSelect.value=2000;yearRange.value=2000;
+
+const yearDisplay=document.getElementById('yearDisplay');
+const grid=document.getElementById('grid');
+const search=document.getElementById('search');
+
+function render(){
+  const y=+yearSelect.value;
+  const q=search.value.trim().toLowerCase();
+  yearDisplay.textContent=y;
+  const list=data[y]||[];
+  grid.innerHTML='';
+  list.filter(c=>!q|| (c.make+c.model+c.info).toLowerCase().includes(q)).forEach(c=>{
+    const div=document.createElement('div');div.className='car-card';
+    div.innerHTML=`
+      <img src="${c.img}" alt="${c.make} ${c.model}">
+      <h3>${c.make} ${c.model}</h3>
+      <p>${c.info}</p>
+      <span class="chip">${y} год</span>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+yearSelect.onchange=()=>{yearRange.value=yearSelect.value;render()}
+yearRange.oninput=()=>{yearSelect.value=yearRange.value;render()}
+search.oninput=()=>render();
+render();
+</script>
+</body>
+</html>
